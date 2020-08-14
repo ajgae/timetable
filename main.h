@@ -3,21 +3,24 @@
 #include <string.h>
 #include <ncurses.h>
 
+/* macros */
 #define DISP_ERR(e, s) {\
     int err = e;\
     if (err == ERR) { fprintf(stderr, "Function returned ERR: " #e s "\n"); }\
 }
 
+/* defines */
 #define HOUR 60
 #define QUARTER (HOUR / 4)
 #define DAY_START (0 * HOUR)
 #define DAY_END (23 * HOUR)
 #define DAY_LEN (DAY_END - DAY_START + HOUR) /* + HOUR because inclusive */
 #define DAY_HEIGHT (2 + DAY_LEN / QUARTER)
-#define DAY_WIDTH 20
+#define DAY_WIDTH 40
 
 #define BORDER_WIDTH 1
 
+/* type definitions */
 typedef struct Cursor_s {
     int y;
     int x;
@@ -29,11 +32,12 @@ typedef struct Cell_s {
 
 typedef struct Day_s {
     WINDOW* win;
-    int count;
-    int* juncs;
+    int slot_count;
+    int* slots;
     Cell* cells;
 } Day;
 
+/* function declarations */
 void ncurses_init(void);
 void loop(void);
 void cursor_move_to(Cursor const cursor);

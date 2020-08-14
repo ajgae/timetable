@@ -5,6 +5,7 @@ OBJ = ${SRC:.c=.o}
 TARGET = timetable
 LIBS = -lncurses
 
+# no optimization, add symbols for gdb
 CFLAGS += -O0 -ggdb
 
 all: ${TARGET}
