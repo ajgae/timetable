@@ -34,12 +34,12 @@ typedef struct Day_s {
     Cell* cells;
 } Day;
 
-void init_ncurses(void);
+void ncurses_init(void);
 void loop(void);
 void cursor_move_to(Cursor const cursor);
-Day create_day_empty(void);
-void destroy_day(Day day);
-Cell create_cell(char const * const msg);
-void destroy_cell(Cell cell);
-void draw_day(Day day, int offset);
-void draw_cell(WINDOW* win, Cell cell, int start, int offset);
+Day day_create_empty(void);
+void day_destroy(Day day);
+Cell cell_create(char const * const msg);
+void cell_destroy(Cell cell);
+void day_draw(Day day, int offset);
+void cell_draw(WINDOW* win, Cell cell, int start, int offset);
