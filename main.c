@@ -19,7 +19,12 @@ void ncurses_init(void)
 
 void loop(void) 
 {
-    Day day = day_create_empty();
+    int slot_count = 3;
+    int* slots = malloc(slot_count * sizeof (int));
+    slots[0] = 0*HOUR;
+    slots[1] = 3*HOUR;
+    slots[2] = 8*HOUR + 2*QUARTER;
+    Day day = day_create(3, slots);
 
     char c = 0;
     do {
@@ -72,7 +77,16 @@ void day_draw(Day day, int offset) {
     wrefresh(day.win);
 }
 
-//void day_add_time_slot(Day day, int start_time,
+Day day_create(int slot_count, int* slots) {
+    Cell* cells = calloc(slot_count, sizeof (Cell));
+    for (int i = 0; i < slot_count; ++i) {
+        cells[i] = cell_create("<empty>");
+    }
+    /* TODO make not hard-coded */
+    WINDOW* window = newwin(DAY_HEIGHT, DAY_WIDTH, 0, 0);
+    Day day = { .win = window, .slot_count = slot_count, .slots = slots, .cells = cells };
+    return day;
+}
 
 Cell cell_create(char const * const msg)
 {

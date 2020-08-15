@@ -26,6 +26,9 @@ typedef struct Cursor_s {
     int x;
 } Cursor;
 
+/* TODO: change Cell into Event with TimeSlot
+ * with start hour, and then other data like msg
+ * (makes much more sense) */
 typedef struct Cell_s {
     char* msg;
 } Cell;
@@ -43,7 +46,8 @@ void loop(void);
 void cursor_move_to(Cursor const cursor);
 Day day_create_empty(void);
 void day_destroy(Day day);
+void day_draw(Day day, int offset);
+Day day_create(int slot_count, int* slots);
 Cell cell_create(char const * const msg);
 void cell_destroy(Cell cell);
-void day_draw(Day day, int offset);
 void cell_draw(WINDOW* win, Cell cell, int start, int offset);
