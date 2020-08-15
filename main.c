@@ -19,92 +19,92 @@ void ncurses_init(void)
 
 void loop(void) 
 {
-    int slot_count = 3;
-    int* slots = malloc(slot_count * sizeof (int));
-    slots[0] = 0*HOUR;
-    slots[1] = 3*HOUR;
-    slots[2] = 8*HOUR + 2*QUARTER;
-    Day day = day_create(3, slots);
+    Slot* slots = calloc(5, sizeof (Slot));
+    slots[0] = slot_create(0*HOUR, "WAKEUP");
+    slots[1] = slot_create(6*HOUR + QUARTER, "BREAKFAST");
+    slots[2] = slot_create(12*HOUR + 2*QUARTER, "LUNCH");
+    slots[3] = slot_create(18*HOUR, "SLEEP");
+    slots[4] = slot_create(23*HOUR + 3*QUARTER, "NIGHT");
+    Day day = day_create(5, slots);
+
+    Line offset = 0;
 
     char c = 0;
     do {
-        day_draw(day, DAY_START);
+        day_draw(day, offset);
         DISP_ERR(refresh(),);
 
         c = getch();
-        /* input bullshit */
-        /* ... */
 
+        switch (c) {
+            case 'J':
+                offset = scroll_offs(offset, 1, DAY_HEIGHT);
+                break;
+            case 'K':
+                offset = scroll_offs(offset, -1, DAY_HEIGHT);
+                break;
+        }
     } while(c != 'q');
 
     day_destroy(day);
 }
 
-void cursor_move_to(Cursor const cursor) 
+Slot slot_create(Minute start_time, char const * const msg)
 {
-    DISP_ERR(move(cursor.y, cursor.x),)
+    int len = strlen(msg);
+    char* buf = calloc(len + 1, sizeof (char));
+    strcpy(buf, msg);
+    Slot slot = { .start_time = start_time, .msg = buf };
+    return slot;
 }
 
-Day day_create_empty(void)
+void slot_destroy(Slot slot) 
 {
-    Cell* cells = malloc(sizeof (Cell));
-    *cells = cell_create("<empty>");
-    int* slot = malloc(sizeof (int));
-    *slot = DAY_START;
+    if (slot.msg != NULL) free(slot.msg);
+}
 
-    WINDOW* window = newwin(DAY_HEIGHT, DAY_WIDTH, 0, 0);
-    Day day = { .win = window, .slot_count = 1, .slots = slot, .cells = cells };
+void slot_draw(WINDOW* win, Slot slot, Line offset) {
+    int start_phys = min_to_lin(slot.start_time) - offset;
+    if (start_phys < 0 || start_phys >= DAY_HEIGHT)
+        return;
+    DISP_ERR(wmove(win, start_phys, 0),);
+    DISP_ERR(wprintw(win, "%02dh%02d\n%s\n",
+             slot.start_time / HOUR, slot.start_time % HOUR, slot.msg),);
+}
+
+Day day_create(int slot_count, Slot* slots, virt_height, virt_width) {
+    WINDOW* pad = newpad(virt_height, virt_width);
+    Day day = { .pad = pad, .slot_count = slot_count, .slots = slots };
     return day;
 }
 
 void day_destroy(Day day) 
 {
-    if (day.win != NULL) delwin(day.win);
-    if (day.slots != NULL) free(day.slots);
-    if (day.cells != NULL) {
+    if (day.pad != NULL) delwin(day.pad);
+    if (day.slots != NULL) {
         for (int i = 0; i < day.slot_count; ++i) {
-            cell_destroy(day.cells[i]);
+            slot_destroy(day.slots[i]);
         }
-        free(day.cells);
+        free(day.slots);
     }
 }
 
-void day_draw(Day day, int offset) {
+void day_draw(Day day, Line offset) {
+    wclear(day.pad);
     for (int i = 0; i < day.slot_count; ++i) {
-        cell_draw(day.win, day.cells[i], day.slots[i], offset);
+        slot_draw(day.pad, day.slots[i], offset);
     }
-    box(day.win, 0, 0);
-    wrefresh(day.win);
+    prefresh(day.pad);
 }
 
-Day day_create(int slot_count, int* slots) {
-    Cell* cells = calloc(slot_count, sizeof (Cell));
-    for (int i = 0; i < slot_count; ++i) {
-        cells[i] = cell_create("<empty>");
-    }
-    /* TODO make not hard-coded */
-    WINDOW* window = newwin(DAY_HEIGHT, DAY_WIDTH, 0, 0);
-    Day day = { .win = window, .slot_count = slot_count, .slots = slots, .cells = cells };
-    return day;
+Line scroll_offs(int curr, int delta, int mod) {
+    int result = (curr + delta) % mod;
+    if (result < 0)
+        return mod - DAY_HEIGHT;
+    return result;
 }
 
-Cell cell_create(char const * const msg)
+Line min_to_lin(Minute m)
 {
-    int len = strlen(msg);
-    char* buf = calloc(len + 1, sizeof (char));
-    strcpy(buf, msg);
-    Cell cell = { .msg = buf };
-    return cell;
+    return m / QUARTER;
 }
-
-void cell_destroy(Cell cell) 
-{
-    if (cell.msg != NULL) free(cell.msg);
-}
-
-void cell_draw(WINDOW* win, Cell cell, int start, int offset) {
-    int line_start = ((start - offset) / QUARTER) + BORDER_WIDTH;
-    DISP_ERR(wmove(win, line_start, 1),);
-    DISP_ERR(wprintw(win, " %02dh%02d\n  %s", start / HOUR, start % HOUR, cell.msg),);
-}
-

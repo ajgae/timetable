@@ -1,3 +1,5 @@
+#pragma once
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,39 +17,43 @@
 #define DAY_START (0 * HOUR)
 #define DAY_END (23 * HOUR)
 #define DAY_LEN (DAY_END - DAY_START + HOUR) /* + HOUR because inclusive */
-#define DAY_HEIGHT (2 + DAY_LEN / QUARTER)
+#define DAY_HEIGHT 55
 #define DAY_WIDTH 40
 
-#define BORDER_WIDTH 1
-
 /* type definitions */
-typedef struct Cursor_s {
+typedef int Minute;
+typedef int Line;
+
+typedef struct {
     int y;
     int x;
 } Cursor;
 
-/* TODO: change Cell into Event with TimeSlot
- * with start hour, and then other data like msg
- * (makes much more sense) */
-typedef struct Cell_s {
+typedef struct {
+    Minute start_time;
     char* msg;
-} Cell;
+} Slot;
 
-typedef struct Day_s {
-    WINDOW* win;
+typedef struct {
+    WINDOW* pad;
     int slot_count;
-    int* slots;
-    Cell* cells;
+    Slot* slots;
 } Day;
+
+typedef struct {
+    int day_count;
+    Day* days;
+} Week;
 
 /* function declarations */
 void ncurses_init(void);
 void loop(void);
-void cursor_move_to(Cursor const cursor);
-Day day_create_empty(void);
+Slot slot_create(int start_time, char const * const msg);
+void slot_destroy(Slot slot);
+void slot_draw(WINDOW* pad, Slot slot, int offset);
 void day_destroy(Day day);
 void day_draw(Day day, int offset);
-Day day_create(int slot_count, int* slots);
-Cell cell_create(char const * const msg);
-void cell_destroy(Cell cell);
-void cell_draw(WINDOW* win, Cell cell, int start, int offset);
+Day day_create(int slot_count, Slot* slots);
+Line scroll_offs(int curr, int delta, int mod);
+Line min_to_lin(Minute m);
+
