@@ -16,18 +16,24 @@
 #define QUARTER (HOUR / 4)
 #define DAY_START (0 * HOUR)
 #define DAY_END (23 * HOUR)
-#define DAY_LEN (DAY_END - DAY_START + HOUR) /* + HOUR because inclusive */
-#define DAY_HEIGHT 55
-#define DAY_WIDTH 40
+#define DAY_VIRT_HEIGHT ((DAY_END - DAY_START + HOUR) / QUARTER) /* + HOUR because inclusive */
+#define DAY_PHYS_HEIGHT 35 /* physical height of day ScrollWin */
+#define DAY_PHYS_WIDTH 40 /* physical width of day ScrollWin */
 
 /* type definitions */
 typedef int Minute;
-typedef int Line;
+typedef int Hour;
 
 typedef struct {
     int y;
     int x;
 } Cursor;
+
+/* the container window is merely a border to the pad */
+typedef struct {
+    WINDOW* container;
+    WINDOW* pad;
+} ScrollWin;
 
 typedef struct {
     Minute start_time;
@@ -35,7 +41,7 @@ typedef struct {
 } Slot;
 
 typedef struct {
-    WINDOW* pad;
+    ScrollWin win;
     int slot_count;
     Slot* slots;
 } Day;
@@ -50,10 +56,18 @@ void ncurses_init(void);
 void loop(void);
 Slot slot_create(int start_time, char const * const msg);
 void slot_destroy(Slot slot);
-void slot_draw(WINDOW* pad, Slot slot, int offset);
+void slot_draw(WINDOW* pad, Slot slot);
+Day day_create(int slot_count, Slot* slots,
+               int virt_height, /* virt_width is always phys_width-2 (for borders) */
+               int phys_height, int phys_width,
+               int begin_y, int begin_x);
 void day_destroy(Day day);
 void day_draw(Day day, int offset);
-Day day_create(int slot_count, Slot* slots);
-Line scroll_offs(int curr, int delta, int mod);
-Line min_to_lin(Minute m);
+ScrollWin scrollwin_create(int virt_height, /* virt_width is always phys_width-2 (for borders) */
+                           int phys_height, int phys_width,
+                           int begin_y, int begin_x);
+void scrollwin_destroy(ScrollWin win);
+int scroll_offs(int curr, int delta, int virt_height, int phys_height);
+int min_to_line(Minute m);
+Hour min_to_hour(Minute m);
 
