@@ -21,21 +21,19 @@ void loop(void)
 {
     Day day = debug_day_create_default();
 
-    int offset = 0;
-
     char c = 0;
     do {
-        day_draw(day, offset);
+        day_draw(day);
         DISP_ERR(refresh(),);
 
         c = getch();
 
         switch (c) {
             case 'J':
-                offset = scrollwin_scroll(day.win, offset, +1);
+                scrollwin_scroll(day.win, +1);
                 break;
             case 'K':
-                offset = scrollwin_scroll(day.win, offset, -1);
+                scrollwin_scroll(day.win, -1);
                 break;
         }
     } while(c != 'q');
@@ -54,7 +52,10 @@ Slot slot_create(Minute start_time, char const * const msg)
 
 void slot_destroy(Slot slot) 
 {
-    if (slot.msg != NULL) free(slot.msg);
+    if (slot.msg != NULL) {
+        free(slot.msg);
+        slot.msg = NULL;
+    }
 }
 
 void slot_draw(WINDOW* pad, Slot slot)
@@ -70,7 +71,7 @@ Day day_create(int slot_count, Slot* slots,
                int phys_height, int phys_width,
                int begin_y, int begin_x)
 {
-    ScrollWin win =
+    ScrollWin* win =
         scrollwin_create(virt_height, SCROLLWIN_PADDING,
                          phys_height, phys_width,
                          begin_y, begin_x);
@@ -92,100 +93,119 @@ Day debug_day_create_default(void) {
 void day_destroy(Day day) 
 {
     scrollwin_destroy(day.win);
+    day.win = NULL;
     if (day.slots != NULL) {
         for (int i = 0; i < day.slot_count; ++i) {
             slot_destroy(day.slots[i]);
         }
         free(day.slots);
+        day.slots = NULL;
     }
 }
 
-void day_draw(Day day, int offset)
+void day_draw(Day day)
 {
     /* TODO optimize when we change info, how we refresh etc.
      * instead of doing it every time */
     /* fill the pad with the right info */
     scrollwin_clear_inner(day.win);
     for (int i = 0; i < day.slot_count; ++i) {
-        slot_draw(day.win.pad, day.slots[i]);
+        slot_draw(day.win->pad, day.slots[i]);
     }
 
-    scrollwin_draw(day.win, offset);
+    scrollwin_draw(day.win);
 }
 
-ScrollWin scrollwin_create(int virt_height, int padding,
-                           int phys_height, int phys_width,
-                           int begin_y, int begin_x)
+ScrollWin* scrollwin_create(int virt_height, int padding,
+                            int phys_height, int phys_width,
+                            int begin_y, int begin_x)
 {
     if (virt_height < 0 || padding < 0
     || phys_height < 0 || phys_width < 0
-    || begin_y < 0 || begin_x < 0)
+    || begin_y < 0 || begin_x < 0
+    || phys_height - 2*padding < 0)
     {
-        ScrollWin win = { .container = NULL, .pad = NULL, .padding = 0 };
-        return win;
+        //ScrollWin win = { .container = NULL, .pad = NULL, .padding = 0, .offset = 0 };
+        //return win;
+        return NULL;
     }
 
     WINDOW* container = DISP_NULPTR(newwin(phys_height, phys_width, begin_y, begin_x),);
     WINDOW* pad = DISP_NULPTR(newpad(virt_height, phys_width - 2*padding),);
-    ScrollWin win = { .container = container, .pad = pad, .padding = padding };
+    ScrollWin* win = DISP_NULPTR(malloc(sizeof (ScrollWin)),);
+    win->container = container;
+    win->pad = pad;
+    win->padding = padding;
+    win->offset = 0;
     return win;
 }
 
-void scrollwin_destroy(ScrollWin win) {
-    if (win.container != NULL) delwin(win.container);
-    if (win.pad != NULL) delwin(win.pad);
+void scrollwin_destroy(ScrollWin* win) {
+    if (win != NULL) {
+        if (win->container != NULL) {
+            delwin(win->container);
+            win->container = NULL;
+        }
+        if (win->pad != NULL) {
+            delwin(win->pad);
+            win->pad = NULL;
+        }
+        free(win);
+        win = NULL;
+    }
 }
 
-void scrollwin_draw(ScrollWin win, int offset) {
-    DISP_ERR(box(win.container, 0, 0),);
-    DISP_ERR(wrefresh(win.container),);
-    DISP_ERR(prefresh(win.pad, offset, 0, 
-                      scrollwin_get_begin_y(win) + win.padding,
-                      scrollwin_get_begin_x(win) + win.padding,
-                      scrollwin_get_phys_height(win) - 2*win.padding,
-                      scrollwin_get_phys_width(win) - 2*win.padding)
+void scrollwin_draw(ScrollWin* win) {
+    DISP_ERR(box(win->container, 0, 0),);
+    DISP_ERR(wrefresh(win->container),);
+    DISP_ERR(prefresh(win->pad, win->offset, 0, 
+                      scrollwin_get_begin_y(win) + win->padding,
+                      scrollwin_get_begin_x(win) + win->padding,
+                      scrollwin_get_phys_height(win) - 2*win->padding,
+                      scrollwin_get_phys_width(win) - 2*win->padding)
             ,);
 }
 
-void scrollwin_clear_inner(ScrollWin win) {
-    wclear(win.pad);
+void scrollwin_clear_inner(ScrollWin* win) {
+    wclear(win->pad);
 }
 
-int scrollwin_scroll(ScrollWin win, int curr_offs, int delta)
+void scrollwin_scroll(ScrollWin* win, int delta)
 {
-    int result = curr_offs + delta;
+    int offset_new = win->offset + delta;
     int scroll_max =
-        scrollwin_get_virt_height(win) - scrollwin_get_phys_height(win) + 2*win.padding;
-    if (result < 0) {
-        return 0;
-    } else if (result >= scroll_max) {
-        return scroll_max;
+        scrollwin_get_virt_height(win) - scrollwin_get_phys_height(win) + 2*win->padding;
+    if (offset_new < 0) {
+        win->offset = 0;
+    } else if (offset_new >= scroll_max) {
+        win->offset = scroll_max;
+    } else {
+        win->offset = offset_new;
     }
-    return result;
 }
 
-int scrollwin_get_begin_y(ScrollWin win) {
-    return getbegy(win.container);
+int scrollwin_get_begin_y(ScrollWin* win) {
+    return getbegy(win->container);
 }
 
-int scrollwin_get_begin_x(ScrollWin win) {
-    return getbegx(win.container);
+int scrollwin_get_begin_x(ScrollWin* win) {
+    return getbegx(win->container);
 }
 
-int scrollwin_get_phys_height(ScrollWin win) {
-    return getmaxy(win.container);
+int scrollwin_get_phys_height(ScrollWin* win) {
+    return getmaxy(win->container);
 }
 
-int scrollwin_get_phys_width(ScrollWin win) {
-    return getmaxx(win.container);
+int scrollwin_get_phys_width(ScrollWin* win) {
+    return getmaxx(win->container);
 }
 
-int scrollwin_get_virt_height(ScrollWin win) {
-    return getmaxy(win.pad);
+int scrollwin_get_virt_height(ScrollWin* win) {
+    return getmaxy(win->pad);
 }
 
-int scrollwin_get_virt_width(ScrollWin win) {
-    return getmaxx(win.pad);
+int scrollwin_get_virt_width(ScrollWin* win) {
+    return getmaxx(win->pad);
 }
 
 /* TODO make this customizable ? like 1 line can be 10, 15, or XX minutes */

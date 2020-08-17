@@ -46,6 +46,7 @@ typedef struct {
     WINDOW* container;
     WINDOW* pad;
     int padding;
+    int offset;
 } ScrollWin;
 
 typedef struct {
@@ -54,7 +55,7 @@ typedef struct {
 } Slot;
 
 typedef struct {
-    ScrollWin win;
+    ScrollWin* win;
     int slot_count;
     Slot* slots;
 } Day;
@@ -73,21 +74,21 @@ Day day_create(int slot_count, Slot* slots,
                int begin_y, int begin_x);
 Day debug_day_create_default(void);
 void day_destroy(Day day);
-void day_draw(Day day, int offset);
+void day_draw(Day day);
 
-ScrollWin scrollwin_create(int virt_height, int padding, /* virt_width is always phys_width-padding */
+ScrollWin* scrollwin_create(int virt_height, int padding, /* virt_width is always phys_width-padding */
                            int phys_height, int phys_width,
                            int begin_y, int begin_x);
-void scrollwin_destroy(ScrollWin win);
-void scrollwin_draw(ScrollWin win, int offset);
-void scrollwin_clear_inner(ScrollWin win);
-int scrollwin_scroll(ScrollWin win, int curr_offs, int delta);
-int scrollwin_get_begin_y(ScrollWin win);
-int scrollwin_get_begin_x(ScrollWin win);
-int scrollwin_get_phys_height(ScrollWin win);
-int scrollwin_get_phys_width(ScrollWin win);
-int scrollwin_get_virt_height(ScrollWin win);
-int scrollwin_get_virt_width(ScrollWin win);
+void scrollwin_destroy(ScrollWin* win);
+void scrollwin_draw(ScrollWin* win);
+void scrollwin_clear_inner(ScrollWin* win);
+void scrollwin_scroll(ScrollWin* win, int delta);
+int scrollwin_get_begin_y(ScrollWin* win);
+int scrollwin_get_begin_x(ScrollWin* win);
+int scrollwin_get_phys_height(ScrollWin* win);
+int scrollwin_get_phys_width(ScrollWin* win);
+int scrollwin_get_virt_height(ScrollWin* win);
+int scrollwin_get_virt_width(ScrollWin* win);
 
 int min_to_line(Minute m);
 Hour min_to_hour(Minute m);
