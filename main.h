@@ -19,11 +19,13 @@
     ptr; })
 
 /* DEFINES */
+/* time unit is minutes
+ * "physical" unit is lines */
 #define HOUR 60
+#define DAY = 24 * HOUR
 #define QUARTER (HOUR / 4)
-#define DAY_START (0 * HOUR)
-#define DAY_END (23 * HOUR)
-#define DAY_VIRT_HEIGHT ((DAY_END - DAY_START + HOUR) / QUARTER) /* + HOUR because inclusive */
+#define DAY_START (6 * HOUR)
+#define DAY_END (19 * HOUR)
 #define DAY_PHYS_HEIGHT 35 /* physical height of day ScrollWin */
 #define DAY_PHYS_WIDTH 40 /* physical width of day ScrollWin */
 #define SCROLLWIN_PADDING 1

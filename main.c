@@ -90,10 +90,8 @@ Day debug_day_create_default(void) {
     return day;
 }
 
-void day_destroy(Day day) 
+void day_destroy(Day day)
 {
-    scrollwin_destroy(day.win);
-    day.win = NULL;
     if (day.slots != NULL) {
         for (int i = 0; i < day.slot_count; ++i) {
             slot_destroy(day.slots[i]);
@@ -101,6 +99,8 @@ void day_destroy(Day day)
         free(day.slots);
         day.slots = NULL;
     }
+    scrollwin_destroy(day.win);
+    day.win = NULL;
 }
 
 void day_draw(Day day)
