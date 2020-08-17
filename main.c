@@ -32,10 +32,10 @@ void loop(void)
 
         switch (c) {
             case 'J':
-                offset = scrollwin_scroll(day.win, offset, +2);
+                offset = scrollwin_scroll(day.win, offset, +1);
                 break;
             case 'K':
-                offset = scrollwin_scroll(day.win, offset, -2);
+                offset = scrollwin_scroll(day.win, offset, -1);
                 break;
         }
     } while(c != 'q');
@@ -61,7 +61,7 @@ void slot_draw(WINDOW* pad, Slot slot)
 {
     int start = min_to_line(slot.start_time);
     DISP_ERR(wmove(pad, start, 0),);
-    DISP_ERR(wprintw(pad, " %02dh%02d\n %s\n",
+    DISP_ERR(wprintw(pad, "%02dh%02d\n%s\n",
              min_to_hour(slot.start_time), slot.start_time % HOUR, slot.msg),);
 }
 
@@ -102,9 +102,10 @@ void day_destroy(Day day)
 
 void day_draw(Day day, int offset)
 {
-    scrollwin_clear_inner(day.win);
-
+    /* TODO optimize when we change info, how we refresh etc.
+     * instead of doing it every time */
     /* fill the pad with the right info */
+    scrollwin_clear_inner(day.win);
     for (int i = 0; i < day.slot_count; ++i) {
         slot_draw(day.win.pad, day.slots[i]);
     }
@@ -141,8 +142,8 @@ void scrollwin_draw(ScrollWin win, int offset) {
     DISP_ERR(prefresh(win.pad, offset, 0, 
                       scrollwin_get_begin_y(win) + win.padding,
                       scrollwin_get_begin_x(win) + win.padding,
-                      scrollwin_get_phys_height(win) - win.padding,
-                      scrollwin_get_phys_width(win) - win.padding)
+                      scrollwin_get_phys_height(win) - 2*win.padding,
+                      scrollwin_get_phys_width(win) - 2*win.padding)
             ,);
 }
 
@@ -153,12 +154,12 @@ void scrollwin_clear_inner(ScrollWin win) {
 int scrollwin_scroll(ScrollWin win, int curr_offs, int delta)
 {
     int result = curr_offs + delta;
-    int displayed_height =
+    int scroll_max =
         scrollwin_get_virt_height(win) - scrollwin_get_phys_height(win) + 2*win.padding;
     if (result < 0) {
         return 0;
-    } else if (result >= displayed_height) {
-        return displayed_height;
+    } else if (result >= scroll_max) {
+        return scroll_max;
     }
     return result;
 }

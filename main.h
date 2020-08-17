@@ -37,8 +37,6 @@ typedef struct {
     int x;
 } Cursor;
 
-/* TODO: refactor most functions so that these structs are passed by reference 
- * (especially ScrollWins) */
 /* TODO (after previous): include offset directly in ScrollWin struct 
  * (or should we ? since that would make the offset not general for a week, 
  * ==> how to deal with different day lengths in a week ? just ban it ? seems easiest
