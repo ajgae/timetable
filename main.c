@@ -19,26 +19,30 @@ void ncurses_init(void)
 
 void loop(void) 
 {
-    Day day = debug_day_create_default();
+    Week* week = debug_week_create_default();
 
     char c = 0;
     do {
-        day_draw(day);
+        week_draw(week);
         DISP_ERR(refresh(),);
 
         c = getch();
 
         switch (c) {
             case 'J':
-                scrollwin_scroll(day.win, +1);
+                for (int i = 0; i < week->day_count; ++i) {
+                    scrollwin_scroll(week->days[i].win, +1);
+                }
                 break;
             case 'K':
-                scrollwin_scroll(day.win, -1);
+                for (int i = 0; i < week->day_count; ++i) {
+                    scrollwin_scroll(week->days[i].win, -1);
+                }
                 break;
         }
     } while(c != 'q');
 
-    day_destroy(day);
+    week_destroy(week);
 }
 
 Slot slot_create(Minute start_time, char const * const msg)
@@ -62,58 +66,104 @@ void slot_draw(WINDOW* pad, Slot slot)
 {
     int start = min_to_line(slot.start_time);
     DISP_ERR(wmove(pad, start, 0),);
-    DISP_ERR(wprintw(pad, "%02dh%02d\n%s\n",
-             min_to_hour(slot.start_time), slot.start_time % HOUR, slot.msg),);
+    int error = wprintw(pad, "%02dh%02d\n%s\n",
+             min_to_hour(slot.start_time), slot.start_time % HOUR, slot.msg);
+    if (error) {
+        fprintf(stderr, "ERROR");
+    }
 }
 
-Day day_create(int slot_count, Slot* slots,
-               int virt_height,
-               int phys_height, int phys_width,
-               int begin_y, int begin_x)
+Day* day_create(int slot_count, Slot* slots,
+                int virt_height,
+                int phys_height, int phys_width,
+                int begin_y, int begin_x)
 {
+    Day* day = DISP_NULPTR(malloc(sizeof (Day)),);
+
     ScrollWin* win =
         scrollwin_create(virt_height, SCROLLWIN_PADDING,
                          phys_height, phys_width,
                          begin_y, begin_x);
-    Day day = { .win = win, .slot_count = slot_count, .slots = slots };
+    qsort(slots, slot_count, sizeof (Slot), compare_int);
+
+    day->slot_count = slot_count;
+    day->slots = slots;
+    day->win = win;
     return day;
 }
 
-Day debug_day_create_default(void) {
+Day* debug_day_create_default(int i) {
     Slot* slots = DISP_NULPTR(calloc(5, sizeof (Slot)),);
     slots[0] = slot_create(0*HOUR, "WAKEUP");
     slots[1] = slot_create(6*HOUR + QUARTER, "BREAKFAST");
-    slots[2] = slot_create(12*HOUR + 2*QUARTER, "LUNCH");
     slots[3] = slot_create(18*HOUR, "SLEEP");
+    slots[2] = slot_create(12*HOUR + 2*QUARTER, "LUNCH");
     slots[4] = slot_create(23*HOUR + 3*QUARTER, "NIGHT");
-    Day day = day_create(5, slots, DAY_VIRT_HEIGHT, DAY_PHYS_HEIGHT, DAY_PHYS_WIDTH, 0, 0);
+    Day* day = day_create(5, slots, min_to_line(DAY), DAY_PHYS_HEIGHT, DAY_PHYS_WIDTH, 0, i*(DAY_PHYS_WIDTH + 1));
     return day;
 }
 
-void day_destroy(Day day)
+void day_destroy(Day* day)
 {
-    if (day.slots != NULL) {
-        for (int i = 0; i < day.slot_count; ++i) {
-            slot_destroy(day.slots[i]);
+    if(day != NULL) {
+        if (day->slots != NULL) {
+            for (int i = 0; i < day->slot_count; ++i) {
+                slot_destroy(day->slots[i]);
+            }
+            free(day->slots);
+            day->slots = NULL;
         }
-        free(day.slots);
-        day.slots = NULL;
+        scrollwin_destroy(day->win);
+        day->win = NULL;
+        
+        free(day);
+        day = NULL;
     }
-    scrollwin_destroy(day.win);
-    day.win = NULL;
 }
 
-void day_draw(Day day)
+void day_draw(Day* day)
 {
-    /* TODO optimize when we change info, how we refresh etc.
+    /* TODO (not urgent): optimize when we change info, how we refresh etc.
      * instead of doing it every time */
     /* fill the pad with the right info */
-    scrollwin_clear_inner(day.win);
-    for (int i = 0; i < day.slot_count; ++i) {
-        slot_draw(day.win->pad, day.slots[i]);
+    scrollwin_clear_inner(day->win);
+    for (int i = 0; i < day->slot_count; ++i) {
+        slot_draw(day->win->pad, day->slots[i]);
     }
 
-    scrollwin_draw(day.win);
+    scrollwin_draw(day->win);
+}
+
+/* TODO (soon?): take a file descriptor as parameter and do the parsing etc to get week */
+/* TODO next: this is a huge mess, should I really have put pointers everywhere ? */
+Week* debug_week_create_default() {
+    Week* week = DISP_NULPTR(malloc(sizeof (Week)),);
+    int day_count = 5;
+    Day* days = malloc(day_count * sizeof (Day));
+    for (int i = 0; i < day_count; ++i) {
+        /* next line: ew */
+        days[i] = *debug_day_create_default(i);
+    }
+    week->day_count = day_count;
+    week->days = days;
+    return week;
+}
+
+void week_destroy(Week* week) {
+    if (week != NULL) {
+        for (int i = 0; i < week->day_count; ++i) {
+            day_destroy (&(week->days[i]));
+        }
+        
+        free(week);
+        week = NULL;
+    }
+}
+
+void week_draw(Week* week) {
+    for (int i = 0; i < week->day_count; ++i) {
+        day_draw(&(week->days[i]));
+    }
 }
 
 ScrollWin* scrollwin_create(int virt_height, int padding,
@@ -125,8 +175,6 @@ ScrollWin* scrollwin_create(int virt_height, int padding,
     || begin_y < 0 || begin_x < 0
     || phys_height - 2*padding < 0)
     {
-        //ScrollWin win = { .container = NULL, .pad = NULL, .padding = 0, .offset = 0 };
-        //return win;
         return NULL;
     }
 
@@ -140,7 +188,8 @@ ScrollWin* scrollwin_create(int virt_height, int padding,
     return win;
 }
 
-void scrollwin_destroy(ScrollWin* win) {
+void scrollwin_destroy(ScrollWin* win)
+{
     if (win != NULL) {
         if (win->container != NULL) {
             delwin(win->container);
@@ -155,18 +204,20 @@ void scrollwin_destroy(ScrollWin* win) {
     }
 }
 
-void scrollwin_draw(ScrollWin* win) {
+void scrollwin_draw(ScrollWin* win)
+{
     DISP_ERR(box(win->container, 0, 0),);
     DISP_ERR(wrefresh(win->container),);
-    DISP_ERR(prefresh(win->pad, win->offset, 0, 
-                      scrollwin_get_begin_y(win) + win->padding,
-                      scrollwin_get_begin_x(win) + win->padding,
-                      scrollwin_get_phys_height(win) - 2*win->padding,
-                      scrollwin_get_phys_width(win) - 2*win->padding)
-            ,);
+    //DISP_ERR(prefresh(win->pad, win->offset, 0, 
+    //                  scrollwin_get_begin_y(win) + scrollwin_get_padding(win),
+    //                  scrollwin_get_begin_x(win) + scrollwin_get_padding(win),
+    //                  scrollwin_get_phys_height(win) - 2*scrollwin_get_padding(win),
+    //                  scrollwin_get_phys_width(win) - 2*scrollwin_get_padding(win))
+    //        ,);
 }
 
-void scrollwin_clear_inner(ScrollWin* win) {
+void scrollwin_clear_inner(ScrollWin* win)
+{
     wclear(win->pad);
 }
 
@@ -174,7 +225,8 @@ void scrollwin_scroll(ScrollWin* win, int delta)
 {
     int offset_new = win->offset + delta;
     int scroll_max =
-        scrollwin_get_virt_height(win) - scrollwin_get_phys_height(win) + 2*win->padding;
+        scrollwin_get_virt_height(win) - scrollwin_get_phys_height(win)
+        + 2*scrollwin_get_padding(win);
     if (offset_new < 0) {
         win->offset = 0;
     } else if (offset_new >= scroll_max) {
@@ -208,13 +260,24 @@ int scrollwin_get_virt_width(ScrollWin* win) {
     return getmaxx(win->pad);
 }
 
-/* TODO make this customizable ? like 1 line can be 10, 15, or XX minutes */
-int min_to_line(Minute m)
-{
+int scrollwin_get_padding(ScrollWin* win) {
+    return win->padding;
+}
+
+/* TODO (not urgent): make this customizable ? like 1 line can be 10, 15, or XX minutes */
+int min_to_line(Minute m) {
     return m / QUARTER;
 }
 
-Hour min_to_hour(Minute m)
-{
+Hour min_to_hour(Minute m) {
     return m / HOUR;
+}
+
+int compare_int(const void* a, const void* b) {
+    if (a < b)
+        return -1;
+    else if (a > b)
+        return 1;
+    else
+        return 0;
 }
