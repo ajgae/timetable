@@ -125,7 +125,7 @@ void day_draw(Day day)
 }
 
 Week debug_week_create_default(void) {
-    int day_count = 1;
+    int day_count = 2;
     //Day days[day_count]; // <-- this is on the stack
     Day* days = calloc(day_count, sizeof (Day));
     for (int i = 0; i < day_count; ++i) {
@@ -193,11 +193,14 @@ void scrollwin_destroy(ScrollWin* win) {
 void scrollwin_draw(ScrollWin* win) {
     DISP_ERR(box(win->container, 0, 0),);
     DISP_ERR(wrefresh(win->container),);
+    int phys_begin_y = scrollwin_get_begin_y(win) + win->padding;
+    int phys_begin_x = scrollwin_get_begin_x(win) + win->padding;
+                      
     DISP_ERR(prefresh(win->pad, win->offset, 0, 
-                      scrollwin_get_begin_y(win) + win->padding,
-                      scrollwin_get_begin_x(win) + win->padding,
-                      scrollwin_get_phys_height(win) - 2*win->padding,
-                      scrollwin_get_phys_width(win) - 2*win->padding)
+                      phys_begin_y,
+                      phys_begin_x,
+                      phys_begin_y + scrollwin_get_phys_height(win) - 2*win->padding,
+                      phys_begin_x + scrollwin_get_phys_width(win) - 2*win->padding)
             ,);
 }
 
