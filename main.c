@@ -1,6 +1,6 @@
 #include "main.h"
 
-int main(int argc, char const * argv[]) 
+int main(void) 
 {
     ncurses_init();
     loop();
@@ -19,26 +19,31 @@ void ncurses_init(void)
 
 void loop(void) 
 {
-    Day day = debug_day_create_default();
+    Week week = debug_week_create_default();
 
+    // BREAKPOINT HERE
     char c = 0;
     do {
-        day_draw(day);
+        week_draw(week);
         DISP_ERR(refresh(),);
 
         c = getch();
 
         switch (c) {
-            case 'J':
-                scrollwin_scroll(day.win, +1);
-                break;
-            case 'K':
-                scrollwin_scroll(day.win, -1);
-                break;
+        case 'J':
+            for (int i = 0; i < week.day_count; ++i) {
+                scrollwin_scroll(week.days[i].win, +1);
+            }
+            break;
+        case 'K':
+            for (int i = 0; i < week.day_count; ++i) {
+                scrollwin_scroll(week.days[i].win, -1);
+            }
+            break;
         }
     } while(c != 'q');
 
-    day_destroy(day);
+    week_destroy(week);
 }
 
 Slot slot_create(Minute start_time, char const * const msg)
@@ -80,14 +85,16 @@ Day day_create(int slot_count, Slot* slots,
     return day;
 }
 
-Day debug_day_create_default(void) {
+Day debug_day_create_default(int h_index) {
     Slot* slots = calloc(5, sizeof (Slot));
     slots[0] = slot_create(0*HOUR, "WAKEUP");
     slots[1] = slot_create(6*HOUR + QUARTER, "BREAKFAST");
     slots[2] = slot_create(12*HOUR + 2*QUARTER, "LUNCH");
     slots[3] = slot_create(18*HOUR, "SLEEP");
     slots[4] = slot_create(23*HOUR + 3*QUARTER, "NIGHT");
-    Day day = day_create(5, slots, DAY_VIRT_HEIGHT, DAY_PHYS_HEIGHT, DAY_PHYS_WIDTH, 0, 0);
+    Day day = day_create(5, slots, DAY_VIRT_HEIGHT,
+            DAY_PHYS_HEIGHT, DAY_PHYS_WIDTH,
+            0, h_index*(DAY_PHYS_WIDTH+1));
     return day;
 }
 
@@ -115,6 +122,31 @@ void day_draw(Day day)
     }
 
     scrollwin_draw(day.win);
+}
+
+Week debug_week_create_default(void) {
+    int day_count = 1;
+    Day days[day_count];
+    for (int i = 0; i < day_count; ++i) {
+        days[i] = debug_day_create_default(i);
+    }
+    Week week = { .day_count = day_count, .days = days };
+    return week;
+}
+
+void week_destroy(Week week) {
+    if (week.days != NULL && week.day_count != 0) {
+        for (int i = 0; i < week.day_count; ++i) {
+            day_destroy(week.days[i]);
+        }
+        week.days = NULL;
+    }
+}
+
+void week_draw(Week week) {
+    for (int i = 0; i < week.day_count; ++i) {
+        day_draw(week.days[i]); 
+    }
 }
 
 ScrollWin* scrollwin_create(int virt_height, int padding,

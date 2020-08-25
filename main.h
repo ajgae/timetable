@@ -53,6 +53,11 @@ typedef struct {
     Slot* slots;
 } Day;
 
+typedef struct {
+    int day_count;
+    Day* days;
+} Week;
+
 /* FUNCTION DECLARATIONS */
 void ncurses_init(void);
 void loop(void);
@@ -65,9 +70,13 @@ Day day_create(int slot_count, Slot* slots,
                int virt_height,
                int phys_height, int phys_width,
                int begin_y, int begin_x);
-Day debug_day_create_default(void);
+Day debug_day_create_default(int h_index);
 void day_destroy(Day day);
 void day_draw(Day day);
+
+Week debug_week_create_default(void);
+void week_destroy(Week week);
+void week_draw(Week week);
 
 ScrollWin* scrollwin_create(int virt_height, int padding, /* virt_width is always phys_width-padding */
                            int phys_height, int phys_width,
