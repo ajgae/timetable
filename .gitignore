@@ -2,3 +2,6 @@ timetable
 *.o
 *.vim
 tags
+TODO
+log
+.ycm*

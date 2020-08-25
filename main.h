@@ -11,13 +11,6 @@
     if (err == ERR) { fprintf(stderr, "%d: Function returned ERR: " #e s "\n", __LINE__); }\
 }
 
-/* TODO makes use of a GCC extension, see statement expressions
- * -> find a better way to do it or remove it later */
-#define DISP_NULPTR(e, s) ({\
-    void* ptr = e;\
-    if (ptr == NULL) { fprintf(stderr, "%d: Function returned NULL: " #e s "\n", __LINE__); }\
-    ptr; })
-
 /* DEFINES */
 #define HOUR 60
 #define QUARTER (HOUR / 4)

@@ -44,7 +44,7 @@ void loop(void)
 Slot slot_create(Minute start_time, char const * const msg)
 {
     int len = strlen(msg);
-    char* buf = DISP_NULPTR(calloc(len + 1, sizeof (char)),);
+    char* buf = calloc(len + 1, sizeof (char));
     strcpy(buf, msg);
     Slot slot = { .start_time = start_time, .msg = buf };
     return slot;
@@ -62,7 +62,8 @@ void slot_draw(WINDOW* pad, Slot slot)
 {
     int start = min_to_line(slot.start_time);
     DISP_ERR(wmove(pad, start, 0),);
-    DISP_ERR(wprintw(pad, "%02dh%02d\n%s\n",
+    /* TODO crop header text (hour | event name) to fit within pad */
+    DISP_ERR(wprintw(pad, "%02dh%02d | %s",
              min_to_hour(slot.start_time), slot.start_time % HOUR, slot.msg),);
 }
 
@@ -80,7 +81,7 @@ Day day_create(int slot_count, Slot* slots,
 }
 
 Day debug_day_create_default(void) {
-    Slot* slots = DISP_NULPTR(calloc(5, sizeof (Slot)),);
+    Slot* slots = calloc(5, sizeof (Slot));
     slots[0] = slot_create(0*HOUR, "WAKEUP");
     slots[1] = slot_create(6*HOUR + QUARTER, "BREAKFAST");
     slots[2] = slot_create(12*HOUR + 2*QUARTER, "LUNCH");
@@ -130,9 +131,9 @@ ScrollWin* scrollwin_create(int virt_height, int padding,
         return NULL;
     }
 
-    WINDOW* container = DISP_NULPTR(newwin(phys_height, phys_width, begin_y, begin_x),);
-    WINDOW* pad = DISP_NULPTR(newpad(virt_height, phys_width - 2*padding),);
-    ScrollWin* win = DISP_NULPTR(malloc(sizeof (ScrollWin)),);
+    WINDOW* container = newwin(phys_height, phys_width, begin_y, begin_x);
+    WINDOW* pad = newpad(virt_height, phys_width - 2*padding);
+    ScrollWin* win = malloc(sizeof (ScrollWin));
     win->container = container;
     win->pad = pad;
     win->padding = padding;
