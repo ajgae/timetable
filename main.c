@@ -126,7 +126,8 @@ void day_draw(Day day)
 
 Week debug_week_create_default(void) {
     int day_count = 1;
-    Day days[day_count];
+    //Day days[day_count]; // <-- this is on the stack
+    Day* days = calloc(day_count, sizeof (Day));
     for (int i = 0; i < day_count; ++i) {
         days[i] = debug_day_create_default(i);
     }
@@ -139,6 +140,7 @@ void week_destroy(Week week) {
         for (int i = 0; i < week.day_count; ++i) {
             day_destroy(week.days[i]);
         }
+        free(week.days);
         week.days = NULL;
     }
 }
