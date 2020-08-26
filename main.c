@@ -25,7 +25,6 @@ void loop(void)
     char c = 0;
     do {
         week_draw(week);
-        DISP_ERR(refresh(),);
 
         c = getch();
 
@@ -115,8 +114,10 @@ void day_draw(Day day)
 {
     /* TODO optimize when we change info, how we refresh etc.
      * instead of doing it every time */
+    /* TODO why do we not need to clear ? */
+    //scrollwin_clear_inner(day.win);
+
     /* fill the pad with the right info */
-    scrollwin_clear_inner(day.win);
     for (int i = 0; i < day.slot_count; ++i) {
         slot_draw(day.win->pad, day.slots[i]);
     }
@@ -172,6 +173,7 @@ ScrollWin* scrollwin_create(int virt_height, int padding,
     win->pad = pad;
     win->padding = padding;
     win->offset = 0;
+    win->container_dirty = 1;
     return win;
 }
 
@@ -191,20 +193,24 @@ void scrollwin_destroy(ScrollWin* win) {
 }
 
 void scrollwin_draw(ScrollWin* win) {
-    DISP_ERR(box(win->container, 0, 0),);
-    DISP_ERR(wrefresh(win->container),);
+    if (win->container_dirty) {
+        DISP_ERR(box(win->container, 0, 0),);
+        DISP_ERR(wrefresh(win->container),);
+        win->container_dirty = 0;
+    }
     int phys_begin_y = scrollwin_get_begin_y(win) + win->padding;
     int phys_begin_x = scrollwin_get_begin_x(win) + win->padding;
     DISP_ERR(prefresh(win->pad, win->offset, 0, 
                       phys_begin_y,
                       phys_begin_x,
-                      phys_begin_y + scrollwin_get_phys_height(win) - 2*win->padding,
+                      /* TODO see if there isnt a better fix */
+                      phys_begin_y + scrollwin_get_phys_height(win) - 2*win->padding - 1,
                       phys_begin_x + scrollwin_get_phys_width(win) - 2*win->padding)
             ,);
 }
 
 void scrollwin_clear_inner(ScrollWin* win) {
-    wclear(win->pad);
+    werase(win->pad);
 }
 
 void scrollwin_scroll(ScrollWin* win, int delta)

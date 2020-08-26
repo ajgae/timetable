@@ -18,3 +18,6 @@ clean:
 	rm ${TARGET} ${OBJ}
 
 new: clean all
+
+run: new
+	./timetable

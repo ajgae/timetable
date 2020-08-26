@@ -40,6 +40,7 @@ typedef struct {
     WINDOW* pad;
     int padding;
     int offset;
+    int container_dirty;
 } ScrollWin;
 
 typedef struct {
