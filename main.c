@@ -210,10 +210,6 @@ void scrollwin_draw(ScrollWin* win) {
             ,);
 }
 
-void scrollwin_clear_inner(ScrollWin* win) {
-    werase(win->pad);
-}
-
 void scrollwin_draw_slot_header(ScrollWin* win, Slot slot) {
     char* header_text = scrollwin_format_slot_header(win, slot);
 
@@ -227,12 +223,18 @@ void scrollwin_draw_slot_header(ScrollWin* win, Slot slot) {
     free(header_text);
 }
 
-/* TODO(?) end formatted header text with ... */
+/* TODO(?) end formatted header text with "..." */
 char* scrollwin_format_slot_header(ScrollWin* win, Slot slot) {
     char* result = calloc(scrollwin_get_virt_width(win), sizeof (char));
-    snprintf(result, scrollwin_get_virt_width(win), "%02dh%02d | %s",
-             min_to_hour(slot.start_time), slot.start_time % HOUR, slot.msg);
+    /* right pad with at most scrollwin_get_virt_width spaces so that bg color fills window width */
+    snprintf(result, scrollwin_get_virt_width(win), "%02dh%02d | %-*s",
+             min_to_hour(slot.start_time), slot.start_time % HOUR,
+             scrollwin_get_virt_width(win), slot.msg);
     return result;
+}
+
+void scrollwin_clear_inner(ScrollWin* win) {
+    werase(win->pad);
 }
 
 void scrollwin_scroll(ScrollWin* win, int delta)
