@@ -59,23 +59,24 @@ typedef struct {
 } Week;
 
 /* FUNCTION DECLARATIONS */
+/* general */
 void ncurses_init(void);
 void loop(void);
-
+/* slots */
 Slot slot_create(int start_time, char const * const msg);
 void slot_destroy(Slot slot);
 void slot_draw(WINDOW* pad, Slot slot);
-
+/* days */
 Day day_create(int slot_count, Slot* slots, int virt_height,
                int day_count, int index);
 Day debug_day_create_default(int day_count, int index);
 void day_destroy(Day day);
 void day_draw(Day day);
-
+/* weeks */
 Week debug_week_create_default(void);
 void week_destroy(Week week);
 void week_draw(Week week);
-
+/* scrollwins */
 ScrollWin* scrollwin_create(int virt_height, int phys_height, int phys_width,
                            int begin_y, int begin_x);
 void scrollwin_destroy(ScrollWin* win);
@@ -88,7 +89,7 @@ int scrollwin_get_phys_height(ScrollWin* win);
 int scrollwin_get_phys_width(ScrollWin* win);
 int scrollwin_get_virt_height(ScrollWin* win);
 int scrollwin_get_virt_width(ScrollWin* win);
-
+/* utility */
 int min_to_line(Minute m);
 Hour min_to_hour(Minute m);
 
