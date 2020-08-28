@@ -12,8 +12,21 @@ int main(void)
 void ncurses_init(void) 
 {
     initscr();
+
+    /* initialize color stuff */
+    if (!has_colors()) {
+        fprintf(stderr, "ERROR: the terminal does not support colors\n");
+        exit(1);
+    } else {
+        start_color();
+        init_pair(PAIR_SLOT_HEADER, COLOR_WHITE, COLOR_BLUE);
+    }
+
+    /* other settings */
     DISP_ERR(cbreak(),);
     DISP_ERR(noecho(),);
+
+    /* initial refresh */
     DISP_ERR(refresh(),);
 }
 
@@ -21,7 +34,6 @@ void loop(void)
 {
     Week week = debug_week_create_default();
 
-    // BREAKPOINT HERE
     char c = 0;
     do {
         week_draw(week);
@@ -62,12 +74,11 @@ void slot_destroy(Slot slot)
     }
 }
 
-void slot_draw(WINDOW* pad, Slot slot)
+void slot_draw(ScrollWin* win, Slot slot)
 {
     int start = min_to_line(slot.start_time);
-    DISP_ERR(wmove(pad, start, 0),);
-    /* TODO crop header text (hour | event name) to fit within pad */
-    DISP_ERR(wprintw(pad, "%02dh%02d | %s",
+    DISP_ERR(wmove(win->pad, start, 0),);
+    DISP_ERR(wprintw(win->pad, "%02dh%02d | %s",
              min_to_hour(slot.start_time), slot.start_time % HOUR, slot.msg),);
 }
 
@@ -86,7 +97,7 @@ Day day_create(int slot_count, Slot* slots, int virt_height,
 
 Day debug_day_create_default(int day_count, int index) {
     Slot* slots = calloc(5, sizeof (Slot));
-    slots[0] = slot_create(0*HOUR, "WAKEUP");
+    slots[0] = slot_create(0*HOUR, "WAKEUP GRAB YOUR BRUSH AND PUT ON A LITTLE MAKEUP");
     slots[1] = slot_create(6*HOUR + QUARTER, "BREAKFAST");
     slots[2] = slot_create(12*HOUR + 2*QUARTER, "LUNCH");
     slots[3] = slot_create(18*HOUR, "SLEEP");
@@ -110,14 +121,13 @@ void day_destroy(Day day)
 
 void day_draw(Day day)
 {
-    /* TODO optimize when we change info, how we refresh etc.
-     * instead of doing it every time */
-    /* TODO why do we not need to clear ? */
+    /* TODO understand why we dont need to clear ? */
     //scrollwin_clear_inner(day.win);
 
     /* fill the pad with the right info */
     for (int i = 0; i < day.slot_count; ++i) {
-        slot_draw(day.win->pad, day.slots[i]);
+        scrollwin_draw_slot_header(day.win, day.slots[i]);
+        //slot_draw(day.win, day.slots[i]);
     }
 
     scrollwin_draw(day.win);
@@ -125,7 +135,6 @@ void day_draw(Day day)
 
 Week debug_week_create_default(void) {
     int day_count = 5;
-    //Day days[day_count]; // <-- this is on the stack
     Day* days = calloc(day_count, sizeof (Day));
     for (int i = 0; i < day_count; ++i) {
         days[i] = debug_day_create_default(day_count, i);
@@ -203,6 +212,27 @@ void scrollwin_draw(ScrollWin* win) {
 
 void scrollwin_clear_inner(ScrollWin* win) {
     werase(win->pad);
+}
+
+void scrollwin_draw_slot_header(ScrollWin* win, Slot slot) {
+    char* header_text = scrollwin_format_slot_header(win, slot);
+
+    /* draw line with color */
+    DISP_ERR(wmove(win->pad, min_to_line(slot.start_time), 0),);
+    DISP_ERR(wattron(win->pad, COLOR_PAIR(PAIR_SLOT_HEADER)),);
+    DISP_ERR(wprintw(win->pad, header_text),);
+    DISP_ERR(wattroff(win->pad, COLOR_PAIR(PAIR_SLOT_HEADER)),);
+
+    /* free allocated memory */
+    free(header_text);
+}
+
+/* TODO(?) end formatted header text with ... */
+char* scrollwin_format_slot_header(ScrollWin* win, Slot slot) {
+    char* result = calloc(scrollwin_get_virt_width(win), sizeof (char));
+    snprintf(result, scrollwin_get_virt_width(win), "%02dh%02d | %s",
+             min_to_hour(slot.start_time), slot.start_time % HOUR, slot.msg);
+    return result;
 }
 
 void scrollwin_scroll(ScrollWin* win, int delta)

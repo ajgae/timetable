@@ -8,7 +8,7 @@
 /* MACROS */
 #define DISP_ERR(e, s) {\
     int err = e;\
-    if (err == ERR) { fprintf(stderr, "%d: Function returned ERR: " #e s "\n", __LINE__); }\
+    if (err == ERR) { fprintf(stderr, "%d: ERROR: Function returned ERR: " #e s "\n", __LINE__); }\
 }
 
 /* DEFINES */
@@ -20,6 +20,8 @@
 #define DAY_PHYS_HEIGHT 35 /* physical height of day ScrollWin */
 #define DAY_PHYS_WIDTH 40 /* physical width of day ScrollWin */
 #define SCROLLWIN_PADDING 1
+/* ncurses color pairs */
+#define PAIR_SLOT_HEADER 1
 
 /* TYPE DEFINITIONS */
 typedef int Minute;
@@ -65,7 +67,7 @@ void loop(void);
 /* slots */
 Slot slot_create(int start_time, char const * const msg);
 void slot_destroy(Slot slot);
-void slot_draw(WINDOW* pad, Slot slot);
+void slot_draw(ScrollWin* win, Slot slot);
 /* days */
 Day day_create(int slot_count, Slot* slots, int virt_height,
                int day_count, int index);
@@ -82,7 +84,10 @@ ScrollWin* scrollwin_create(int virt_height, int phys_height, int phys_width,
 void scrollwin_destroy(ScrollWin* win);
 void scrollwin_draw(ScrollWin* win);
 void scrollwin_clear_inner(ScrollWin* win);
+void scrollwin_draw_slot_header(ScrollWin* win, Slot slot);
+char* scrollwin_format_slot_header(ScrollWin* win, Slot slot);
 void scrollwin_scroll(ScrollWin* win, int delta);
+/* scrollwin gets */
 int scrollwin_get_begin_y(ScrollWin* win);
 int scrollwin_get_begin_x(ScrollWin* win);
 int scrollwin_get_phys_height(ScrollWin* win);
