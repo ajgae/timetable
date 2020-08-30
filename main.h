@@ -15,7 +15,7 @@
 #define HOUR 60
 #define QUARTER (HOUR / 4)
 #define HALFHOUR (HOUR / 2)
-#define LINESTEP HALFHOUR /* how many minutes a line represents */
+#define LINESTEP QUARTER /* how many minutes a line represents */
 #define DAY_START (0 * HOUR)
 #define DAY_END (23 * HOUR)
 #define DAY_VIRT_HEIGHT ((DAY_END - DAY_START + HOUR) / LINESTEP) /* + HOUR because inclusive */
@@ -69,11 +69,9 @@ void slot_draw(ScrollWin* win, Slot slot);
 /* days */
 Day day_create(int slot_count, Slot* slots, int virt_height,
                int day_count, int index);
-Day debug_day_create_default(int day_count, int index);
 void day_destroy(Day day);
 void day_draw(Day day);
 /* weeks */
-Week debug_week_create_default(void);
 void week_destroy(Week week);
 void week_draw(Week week);
 /* scrollwins */

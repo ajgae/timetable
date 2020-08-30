@@ -1,4 +1,5 @@
 #include "main.h"
+#include "debug.h"
 
 int main(void) 
 {
@@ -45,7 +46,7 @@ void ncurses_init(void)
 
 void loop(void) 
 {
-    Week week = debug_week_create_default();
+    Week week = debug_week_create_true();
 
     char c = 0;
     do {
@@ -113,17 +114,6 @@ Day day_create(int slot_count, Slot* slots, int virt_height,
     return day;
 }
 
-Day debug_day_create_default(int day_count, int index) {
-    Slot* slots = calloc(5, sizeof (Slot));
-    slots[0] = slot_create(0*HOUR,              1*QUARTER, "WAKEUP GRAB YOUR BRUSH AND PUT ON A LITTLE MAKEUP");
-    slots[1] = slot_create(6*HOUR + 1*QUARTER,  4*QUARTER, "BREAKFAST");
-    slots[2] = slot_create(12*HOUR + 2*QUARTER, 4*QUARTER, "LUNCH");
-    slots[3] = slot_create(18*HOUR,             1*QUARTER, "SLEEP");
-    slots[4] = slot_create(23*HOUR + 0*QUARTER, 1*QUARTER, "NIGHT");
-    Day day = day_create(5, slots, DAY_VIRT_HEIGHT, day_count, index);
-    return day;
-}
-
 void day_destroy(Day day) 
 {
     scrollwin_destroy(day.win);
@@ -147,16 +137,6 @@ void day_draw(Day day)
     }
 
     scrollwin_draw(day.win);
-}
-
-Week debug_week_create_default(void) {
-    int day_count = 5;
-    Day* days = calloc(day_count, sizeof (Day));
-    for (int i = 0; i < day_count; ++i) {
-        days[i] = debug_day_create_default(day_count, i);
-    }
-    Week week = { .day_count = day_count, .days = days };
-    return week;
 }
 
 void week_destroy(Week week) {
