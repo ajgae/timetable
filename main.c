@@ -13,14 +13,26 @@ void ncurses_init(void)
 {
     initscr();
 
-    /* initialize color stuff */
+    /* initialize color stuff (apparently it is good practice
+     * to do this right after initscr(), see start_color(3X)) */
     if (!has_colors()) {
         fprintf(stderr, "ERROR: the terminal does not support colors\n");
         exit(1);
     } else {
         start_color();
-        init_pair(PAIR_SLOT_HEADER, COLOR_WHITE, COLOR_BLUE);
-        init_pair(PAIR_SLOT_BG, COLOR_BLACK, COLOR_WHITE);
+        use_default_colors();
+        
+        if (can_change_color() && COLORS >= 16) {
+            init_color(COLOR_WHITE_BRIGHT, 1000, 1000, 1000);
+        }
+        
+        if (COLORS >= 16) {
+            init_pair(PAIR_SLOT_HEADER, COLOR_WHITE_BRIGHT, COLOR_BLUE);
+            init_pair(PAIR_SLOT_BG, COLOR_BLACK, COLOR_WHITE_BRIGHT);
+        } else {
+            init_pair(PAIR_SLOT_HEADER, COLOR_WHITE, COLOR_BLUE);
+            init_pair(PAIR_SLOT_BG, COLOR_BLACK, COLOR_WHITE);
+        }
     }
 
     /* other settings */
@@ -89,11 +101,11 @@ Day day_create(int slot_count, Slot* slots, int virt_height,
 {
     /* scale day height to terminal height, or to the maximum needed by the contents of day
      * if that is less than the terminal height */
-    int scr_size_y = getmaxy(stdscr);
+    int scr_size_y, scr_size_x;
+    getmaxyx(stdscr, scr_size_y, scr_size_x);
     scr_size_y = (scr_size_y > DAY_VIRT_HEIGHT+2*SCROLLWIN_PADDING ?
                   DAY_VIRT_HEIGHT+2*SCROLLWIN_PADDING :
                   scr_size_y);
-    int scr_size_x = getmaxx(stdscr);
     ScrollWin* win =
         scrollwin_create(virt_height, scr_size_y, scr_size_x/day_count,
                          0, index*(scr_size_x/day_count));
@@ -104,10 +116,10 @@ Day day_create(int slot_count, Slot* slots, int virt_height,
 Day debug_day_create_default(int day_count, int index) {
     Slot* slots = calloc(5, sizeof (Slot));
     slots[0] = slot_create(0*HOUR,              1*QUARTER, "WAKEUP GRAB YOUR BRUSH AND PUT ON A LITTLE MAKEUP");
-    slots[1] = slot_create(6*HOUR + 1*QUARTER,  2*QUARTER, "BREAKFAST");
-    slots[2] = slot_create(12*HOUR + 2*QUARTER, 3*QUARTER, "LUNCH");
-    slots[3] = slot_create(18*HOUR,             2*QUARTER, "SLEEP");
-    slots[4] = slot_create(23*HOUR + 2*QUARTER, 1*QUARTER, "NIGHT");
+    slots[1] = slot_create(6*HOUR + 1*QUARTER,  4*QUARTER, "BREAKFAST");
+    slots[2] = slot_create(12*HOUR + 2*QUARTER, 4*QUARTER, "LUNCH");
+    slots[3] = slot_create(18*HOUR,             1*QUARTER, "SLEEP");
+    slots[4] = slot_create(23*HOUR + 0*QUARTER, 1*QUARTER, "NIGHT");
     Day day = day_create(5, slots, DAY_VIRT_HEIGHT, day_count, index);
     return day;
 }

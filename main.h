@@ -15,12 +15,14 @@
 #define HOUR 60
 #define QUARTER (HOUR / 4)
 #define HALFHOUR (HOUR / 2)
-#define LINESTEP QUARTER /* how many minutes a line represents */
+#define LINESTEP HALFHOUR /* how many minutes a line represents */
 #define DAY_START (0 * HOUR)
 #define DAY_END (23 * HOUR)
 #define DAY_VIRT_HEIGHT ((DAY_END - DAY_START + HOUR) / LINESTEP) /* + HOUR because inclusive */
 #define DAY_PHYS_WIDTH 40 /* physical width of day ScrollWin */
 #define SCROLLWIN_PADDING 1
+/* additional ncurses colors */
+#define COLOR_WHITE_BRIGHT 15
 /* ncurses color pairs */
 #define PAIR_SLOT_HEADER 1
 #define PAIR_SLOT_BG 2
