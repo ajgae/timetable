@@ -20,6 +20,7 @@ void ncurses_init(void)
     } else {
         start_color();
         init_pair(PAIR_SLOT_HEADER, COLOR_WHITE, COLOR_BLUE);
+        init_pair(PAIR_SLOT_BG, COLOR_BLACK, COLOR_WHITE);
     }
 
     /* other settings */
@@ -57,12 +58,15 @@ void loop(void)
     week_destroy(week);
 }
 
-Slot slot_create(Minute start_time, char const * const msg)
+Slot slot_create(Minute start_time, Minute duration, char const * const msg)
 {
+    if (duration < 0) {
+        duration = 0;
+    }
     int len = strlen(msg);
     char* buf = calloc(len + 1, sizeof (char));
     strcpy(buf, msg);
-    Slot slot = { .start_time = start_time, .msg = buf };
+    Slot slot = { .start_time = start_time, .duration = duration, .msg = buf };
     return slot;
 }
 
@@ -76,10 +80,8 @@ void slot_destroy(Slot slot)
 
 void slot_draw(ScrollWin* win, Slot slot)
 {
-    int start = min_to_line(slot.start_time);
-    DISP_ERR(wmove(win->pad, start, 0),);
-    DISP_ERR(wprintw(win->pad, "%02dh%02d | %s",
-             min_to_hour(slot.start_time), slot.start_time % HOUR, slot.msg),);
+    scrollwin_draw_slot_bg(win, slot);
+    scrollwin_draw_slot_header(win, slot);
 }
 
 Day day_create(int slot_count, Slot* slots, int virt_height,
@@ -101,11 +103,11 @@ Day day_create(int slot_count, Slot* slots, int virt_height,
 
 Day debug_day_create_default(int day_count, int index) {
     Slot* slots = calloc(5, sizeof (Slot));
-    slots[0] = slot_create(0*HOUR, "WAKEUP GRAB YOUR BRUSH AND PUT ON A LITTLE MAKEUP");
-    slots[1] = slot_create(6*HOUR + 1*QUARTER, "BREAKFAST");
-    slots[2] = slot_create(12*HOUR + 2*QUARTER, "LUNCH");
-    slots[3] = slot_create(18*HOUR, "SLEEP");
-    slots[4] = slot_create(23*HOUR + 2*QUARTER, "NIGHT");
+    slots[0] = slot_create(0*HOUR,              1*QUARTER, "WAKEUP GRAB YOUR BRUSH AND PUT ON A LITTLE MAKEUP");
+    slots[1] = slot_create(6*HOUR + 1*QUARTER,  1*QUARTER, "BREAKFAST");
+    slots[2] = slot_create(12*HOUR + 2*QUARTER, 1*QUARTER, "LUNCH");
+    slots[3] = slot_create(18*HOUR,             1*QUARTER, "SLEEP");
+    slots[4] = slot_create(23*HOUR + 2*QUARTER, 1*QUARTER, "NIGHT");
     Day day = day_create(5, slots, DAY_VIRT_HEIGHT, day_count, index);
     return day;
 }
@@ -129,8 +131,7 @@ void day_draw(Day day)
 
     /* fill the pad with the right info */
     for (int i = 0; i < day.slot_count; ++i) {
-        scrollwin_draw_slot_header(day.win, day.slots[i]);
-        //slot_draw(day.win, day.slots[i]);
+        slot_draw(day.win, day.slots[i]);
     }
 
     scrollwin_draw(day.win);
@@ -198,6 +199,7 @@ void scrollwin_destroy(ScrollWin* win) {
 
 void scrollwin_draw(ScrollWin* win) {
     if (win->container_dirty) {
+        /* box with default borders */
         DISP_ERR(box(win->container, 0, 0),);
         DISP_ERR(wrefresh(win->container),);
         win->container_dirty = 0;
@@ -207,7 +209,7 @@ void scrollwin_draw(ScrollWin* win) {
     DISP_ERR(prefresh(win->pad, win->offset, 0, 
                       phys_begin_y,
                       phys_begin_x,
-                      /* TODO see if there isnt a better fix */
+                      /* TODO see if there isnt a better fix than this ugly -1 */
                       phys_begin_y + scrollwin_get_phys_height(win) - 2*SCROLLWIN_PADDING - 1,
                       phys_begin_x + scrollwin_get_phys_width(win) - 2*SCROLLWIN_PADDING)
             ,);
@@ -224,6 +226,27 @@ void scrollwin_draw_slot_header(ScrollWin* win, Slot slot) {
 
     /* free allocated memory */
     free(header_text);
+}
+
+void scrollwin_draw_slot_bg(ScrollWin* win, Slot slot) {
+    /* TODO find a better way to fill in the bg (maybe?) */
+    /* wprintw newlines after it hits the pad border,
+     * we can use that to fill in the necessary lines */
+    int width = scrollwin_get_virt_width(win);
+    int n_lines = min_to_line(slot.duration);
+    char* filler = calloc(width * n_lines, sizeof (char));
+    for (int i = 0; i < width * n_lines; ++i) {
+        filler[i] = 'X';
+    }
+    
+    /* fill in the bg */
+    DISP_ERR(wmove(win->pad, min_to_line(slot.start_time), 0),);
+    DISP_ERR(wattron(win->pad, COLOR_PAIR(PAIR_SLOT_BG)),);
+    DISP_ERR(wprintw(win->pad, filler),);
+    DISP_ERR(wattroff(win->pad, COLOR_PAIR(PAIR_SLOT_BG)),);
+
+    /* free allocated memory */
+    free(filler);
 }
 
 /* TODO(?) end formatted header text with "..." */
@@ -278,9 +301,6 @@ int scrollwin_get_virt_width(ScrollWin* win) {
     return getmaxx(win->pad);
 }
 
-/* TODO make this customizable ? like 1 line can be 10, 15, or XX minutes
- * ==> nothing much to do, changing the value of LINESTEP already pretty much
- * works out of the box (watch out for events) */
 int min_to_line(Minute m)
 {
     return m / LINESTEP;

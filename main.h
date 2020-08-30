@@ -23,20 +23,14 @@
 #define SCROLLWIN_PADDING 1
 /* ncurses color pairs */
 #define PAIR_SLOT_HEADER 1
+#define PAIR_SLOT_BG 2
 
 /* TYPE DEFINITIONS */
 typedef int Minute;
 typedef int Hour;
 
-typedef struct {
-    int y;
-    int x;
-} Cursor;
-
-/* TODO (after previous): include offset directly in ScrollWin struct 
- * (or should we ? since that would make the offset not general for a week, 
- * ==> how to deal with different day lengths in a week ? just ban it ? seems easiest
- * and most sensical) */
+/* TODO: how to deal with different day lengths in a week ?
+ * just ban it ? seems easiest and most sensical) */
 /* the container window is merely a border to the pad (if padding >= 1) */
 typedef struct {
     WINDOW* container;
@@ -47,6 +41,7 @@ typedef struct {
 
 typedef struct {
     Minute start_time;
+    Minute duration;
     char* msg;
 } Slot;
 
@@ -66,7 +61,7 @@ typedef struct {
 void ncurses_init(void);
 void loop(void);
 /* slots */
-Slot slot_create(int start_time, char const * const msg);
+Slot slot_create(Minute start_time, Minute duration, char const * const msg);
 void slot_destroy(Slot slot);
 void slot_draw(ScrollWin* win, Slot slot);
 /* days */
@@ -86,6 +81,7 @@ void scrollwin_destroy(ScrollWin* win);
 void scrollwin_draw(ScrollWin* win);
 void scrollwin_clear_inner(ScrollWin* win);
 void scrollwin_draw_slot_header(ScrollWin* win, Slot slot);
+void scrollwin_draw_slot_bg(ScrollWin* win, Slot slot);
 char* scrollwin_format_slot_header(ScrollWin* win, Slot slot);
 void scrollwin_scroll(ScrollWin* win, int delta);
 /* scrollwin gets */
