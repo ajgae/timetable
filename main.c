@@ -103,7 +103,7 @@ Day debug_day_create_default(int day_count, int index) {
     Slot* slots = calloc(5, sizeof (Slot));
     slots[0] = slot_create(0*HOUR, "WAKEUP GRAB YOUR BRUSH AND PUT ON A LITTLE MAKEUP");
     slots[1] = slot_create(6*HOUR + 1*QUARTER, "BREAKFAST");
-    slots[2] = slot_create(12*HOUR + 1*HALFHOUR, "LUNCH");
+    slots[2] = slot_create(12*HOUR + 2*QUARTER, "LUNCH");
     slots[3] = slot_create(18*HOUR, "SLEEP");
     slots[4] = slot_create(23*HOUR + 2*QUARTER, "NIGHT");
     Day day = day_create(5, slots, DAY_VIRT_HEIGHT, day_count, index);
@@ -113,7 +113,6 @@ Day debug_day_create_default(int day_count, int index) {
 void day_destroy(Day day) 
 {
     scrollwin_destroy(day.win);
-    day.win = NULL;
     if (day.slots != NULL) {
         for (int i = 0; i < day.slot_count; ++i) {
             slot_destroy(day.slots[i]);
