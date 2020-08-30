@@ -85,8 +85,12 @@ void slot_draw(ScrollWin* win, Slot slot)
 Day day_create(int slot_count, Slot* slots, int virt_height,
                int day_count, int index)
 {
-    /* TODO IMMEDIATELY automatically size days (get maxy and maxx of stdscr) */
+    /* scale day height to terminal height, or to the maximum needed by the contents of day
+     * if that is less than the terminal height */
     int scr_size_y = getmaxy(stdscr);
+    scr_size_y = (scr_size_y > DAY_VIRT_HEIGHT+2*SCROLLWIN_PADDING ?
+                  DAY_VIRT_HEIGHT+2*SCROLLWIN_PADDING :
+                  scr_size_y);
     int scr_size_x = getmaxx(stdscr);
     ScrollWin* win =
         scrollwin_create(virt_height, scr_size_y, scr_size_x/day_count,
@@ -98,10 +102,10 @@ Day day_create(int slot_count, Slot* slots, int virt_height,
 Day debug_day_create_default(int day_count, int index) {
     Slot* slots = calloc(5, sizeof (Slot));
     slots[0] = slot_create(0*HOUR, "WAKEUP GRAB YOUR BRUSH AND PUT ON A LITTLE MAKEUP");
-    slots[1] = slot_create(6*HOUR + QUARTER, "BREAKFAST");
-    slots[2] = slot_create(12*HOUR + 2*QUARTER, "LUNCH");
+    slots[1] = slot_create(6*HOUR + 1*QUARTER, "BREAKFAST");
+    slots[2] = slot_create(12*HOUR + 1*HALFHOUR, "LUNCH");
     slots[3] = slot_create(18*HOUR, "SLEEP");
-    slots[4] = slot_create(23*HOUR + 3*QUARTER, "NIGHT");
+    slots[4] = slot_create(23*HOUR + 2*QUARTER, "NIGHT");
     Day day = day_create(5, slots, DAY_VIRT_HEIGHT, day_count, index);
     return day;
 }
@@ -226,7 +230,7 @@ void scrollwin_draw_slot_header(ScrollWin* win, Slot slot) {
 /* TODO(?) end formatted header text with "..." */
 char* scrollwin_format_slot_header(ScrollWin* win, Slot slot) {
     char* result = calloc(scrollwin_get_virt_width(win), sizeof (char));
-    /* right pad with at most scrollwin_get_virt_width spaces so that bg color fills window width */
+    /* right pad so that header bg color fills window width */
     snprintf(result, scrollwin_get_virt_width(win), "%02dh%02d | %-*s",
              min_to_hour(slot.start_time), slot.start_time % HOUR,
              scrollwin_get_virt_width(win), slot.msg);
@@ -275,10 +279,12 @@ int scrollwin_get_virt_width(ScrollWin* win) {
     return getmaxx(win->pad);
 }
 
-/* TODO make this customizable ? like 1 line can be 10, 15, or XX minutes */
+/* TODO make this customizable ? like 1 line can be 10, 15, or XX minutes
+ * ==> nothing much to do, changing the value of LINESTEP already pretty much
+ * works out of the box (watch out for events) */
 int min_to_line(Minute m)
 {
-    return m / QUARTER;
+    return m / LINESTEP;
 }
 
 Hour min_to_hour(Minute m)

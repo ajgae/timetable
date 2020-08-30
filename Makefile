@@ -15,7 +15,7 @@ timetable: ${OBJ}
 	${CC} -o $@  ${OBJ} ${LIBS} ${LDFLAGS}
 
 clean:
-	rm ${TARGET} ${OBJ}
+	rm -f ${TARGET} ${OBJ}
 
 new: clean all
 
