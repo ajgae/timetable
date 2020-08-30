@@ -104,9 +104,9 @@ Day day_create(int slot_count, Slot* slots, int virt_height,
 Day debug_day_create_default(int day_count, int index) {
     Slot* slots = calloc(5, sizeof (Slot));
     slots[0] = slot_create(0*HOUR,              1*QUARTER, "WAKEUP GRAB YOUR BRUSH AND PUT ON A LITTLE MAKEUP");
-    slots[1] = slot_create(6*HOUR + 1*QUARTER,  1*QUARTER, "BREAKFAST");
-    slots[2] = slot_create(12*HOUR + 2*QUARTER, 1*QUARTER, "LUNCH");
-    slots[3] = slot_create(18*HOUR,             1*QUARTER, "SLEEP");
+    slots[1] = slot_create(6*HOUR + 1*QUARTER,  2*QUARTER, "BREAKFAST");
+    slots[2] = slot_create(12*HOUR + 2*QUARTER, 3*QUARTER, "LUNCH");
+    slots[3] = slot_create(18*HOUR,             2*QUARTER, "SLEEP");
     slots[4] = slot_create(23*HOUR + 2*QUARTER, 1*QUARTER, "NIGHT");
     Day day = day_create(5, slots, DAY_VIRT_HEIGHT, day_count, index);
     return day;
@@ -234,9 +234,9 @@ void scrollwin_draw_slot_bg(ScrollWin* win, Slot slot) {
      * we can use that to fill in the necessary lines */
     int width = scrollwin_get_virt_width(win);
     int n_lines = min_to_line(slot.duration);
-    char* filler = calloc(width * n_lines, sizeof (char));
+    char* filler = calloc(width * n_lines + 1, sizeof (char));
     for (int i = 0; i < width * n_lines; ++i) {
-        filler[i] = 'X';
+        filler[i] = ' ';
     }
     
     /* fill in the bg */
@@ -251,9 +251,10 @@ void scrollwin_draw_slot_bg(ScrollWin* win, Slot slot) {
 
 /* TODO(?) end formatted header text with "..." */
 char* scrollwin_format_slot_header(ScrollWin* win, Slot slot) {
-    char* result = calloc(scrollwin_get_virt_width(win), sizeof (char));
+    /* dont forget +1, account for terminating null byte ! */
+    char* result = calloc(scrollwin_get_virt_width(win) + 1, sizeof (char));
     /* right pad so that header bg color fills window width */
-    snprintf(result, scrollwin_get_virt_width(win), "%02dh%02d | %-*s",
+    snprintf(result, scrollwin_get_virt_width(win) + 1, "%02dh%02d | %-*s",
              min_to_hour(slot.start_time), slot.start_time % HOUR,
              scrollwin_get_virt_width(win), slot.msg);
     return result;
